@@ -476,7 +476,7 @@ bool candata_vcu_battery_voltage_is_in_range(uint16_t value);
  */
 int candata_motor_current_pack(
     uint8_t *dst_p,
-    const struct candata_motor_current_t *src_p,
+    struct candata_motor_current_t *src_p,
     size_t size);
 
 /**
@@ -847,7 +847,7 @@ bool candata_vcu_battery_voltage_is_in_range(uint16_t value)
 
 int candata_motor_current_pack(
     uint8_t *dst_p,
-    const struct candata_motor_current_t *src_p,
+    struct candata_motor_current_t *src_p,
     size_t size)
 {
     uint16_t front_current;

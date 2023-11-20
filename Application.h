@@ -2,18 +2,33 @@
 #include "candata.h"
 
 struct candata_vcu_battery_t VBATT;
-struct can_frame frame;
+struct can_frame frame, TxFrame;
 float batteryVoltage;
 struct candata_vcu_wheel_speeds_t wheelSpeed;
 float frontTrq;
 struct candata_ai_drive_request_t driveRequest;
 uint16_t rr_wheelSpeed, rl_wheelSpeed, fr_wheelSpeed, fl_wheelSpeed;
 float rearTrq;
+float frontCurrent, rearCurrent;
 float steeringReq;
+int16_t front_current, rear_current;
+struct candata_motor_current_t currentData;
+uint8_t currentDataBuffer[8];
 
 void vcu_battery_frame_process(struct candata_vcu_battery_t* VBATT, struct can_frame frame, float* batteryVoltage);
 void ai_drive_request_frame_process(struct candata_ai_drive_request_t* driveRequest, struct can_frame frame, float* frontTrq, float* rearTrq, float* steeringReq);
 void vcu_wheel_speed_frame_process(struct candata_vcu_wheel_speeds_t* wheelSpeed, struct can_frame frame, uint16_t* rr_wheelSpeed, uint16_t* rl_wheelSpeed, uint16_t* fr_wheelSpeed, uint16_t* fl_wheelSpeed);
+int process_motor_current_request(float frontCurrent, struct candata_motor_current_t* currentData, float rearCurrent, uint8_t* currentDataBuffer);
+
+
+int process_motor_current_request(float frontCurrent, struct candata_motor_current_t* currentData, float rearCurrent, uint8_t* currentDataBuffer)
+{
+	int rvalue;
+	currentData->front_current = candata_motor_current_front_current_encode(frontCurrent);
+	currentData->rear_current = candata_motor_current_rear_current_encode(rearCurrent);
+	rvalue = candata_motor_current_pack(currentDataBuffer, currentData, 4);
+	return rvalue;
+}
 
 void ai_drive_request_frame_process(struct candata_ai_drive_request_t* driveRequest, struct can_frame frame, float* frontTrq, float* rearTrq, float* steeringReq)
 {

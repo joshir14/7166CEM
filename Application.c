@@ -1,6 +1,7 @@
 #include "Application.h"
 
 int16_t calculateCurrent(float batteryVoltage);
+int dlc;
 
 int main()
 {
@@ -37,6 +38,20 @@ int main()
 			}
 			t = calculateCurrent(batteryVoltage);
 			printf("Torque limited to %d\n", t);
+			dlc = process_motor_current_request(4.5, &currentData, 6.77,  currentDataBuffer);
+			//printf("DLC is %d\n", dlc);
+			//currentData->front_current = candata_motor_current_front_current_encode(7.8);
+			
+			TxFrame.can_id = 0x320;
+			TxFrame.can_dlc = dlc;
+			TxFrame.data[0] = currentDataBuffer[0];
+			TxFrame.data[1] = currentDataBuffer[1];
+			TxFrame.data[2] = currentDataBuffer[2];
+			TxFrame.data[3] = currentDataBuffer[3];
+			if(!can_write(socket_id, &TxFrame))
+			{
+				printf("Error\n");
+			}
 		}
 	}
 }
