@@ -8,6 +8,16 @@ int main()
 {
 	const int socket_id = can_connect("vcan0",0);
 	float cf1, cr1;
+	struct candata_vcu_battery_t VBATT;
+	struct can_frame frame, TxFrame;
+	float batteryVoltage;
+	struct candata_vcu_wheel_speeds_t wheelSpeed;
+	struct candata_ai_drive_request_t driveRequest;
+	uint16_t rr_wheelSpeed, rl_wheelSpeed, fr_wheelSpeed, fl_wheelSpeed;
+	float frontCurrent, rearCurrent;
+	float steeringReq, rearTrq, frontTrq;
+	struct candata_motor_current_t currentData;
+	uint8_t currentDataBuffer[8];
 	int tf1, tr1;
 	while(1)
 	{
@@ -39,17 +49,15 @@ int main()
 			}
 			tf1 = torque_limit_front(fr_wheelSpeed, fl_wheelSpeed, frontTrq, batteryVoltage);
 			tr1 = torque_limit_rear(rr_wheelSpeed, rl_wheelSpeed, rearTrq, batteryVoltage);
+			cf1 = calculate_front_current(tf1, batteryVoltage, 300);
+			cr1 = calculate_rear_current(tr1, batteryVoltage, 400);
+			printf("Rear current %f\n", cr1);
+			printf("Front current %f\n", cf1);
 			dlc = process_motor_current_request(4.5, &currentData, 6.77,  currentDataBuffer);
 			printf("DLC is %d\n", dlc);
 			//currentData->front_current = candata_motor_current_front_current_encode(7.8);
 			
-			TxFrame.can_id = 0x320;
-			TxFrame.can_dlc = dlc;
-			//TxFrame.data[0] = currentDataBuffer[0];
-			//TxFrame.data[1] = currentDataBuffer[1];
-			//TxFrame.data[2] = currentDataBuffer[2];
-			//TxFrame.data[3] = currentDataBuffer[3];
-			copyData(&TxFrame, currentDataBuffer, dlc);
+			generate_can_frame(&TxFrame, currentDataBuffer, 0x320, dlc);
 			if(!can_write(socket_id, &TxFrame))
 			{
 				printf("Error\n");
@@ -58,15 +66,6 @@ int main()
 	}
 }
 
-void copyData(struct can_frame* frame, uint8_t *currentDataBuffer, int dlc)
-{
-	if(dlc > 0)
-	{
-		for (int i = 0; i < dlc; i++)
-		{
-			frame->data[i] = currentDataBuffer[i];
-		}
-	}	
-}
+
 
 

@@ -1,17 +1,6 @@
 #include "can_wrap.h"
 #include "candata.h"
 
-struct candata_vcu_battery_t VBATT;
-struct can_frame frame, TxFrame;
-float batteryVoltage;
-struct candata_vcu_wheel_speeds_t wheelSpeed;
-struct candata_ai_drive_request_t driveRequest;
-uint16_t rr_wheelSpeed, rl_wheelSpeed, fr_wheelSpeed, fl_wheelSpeed;
-float frontCurrent, rearCurrent;
-float steeringReq, rearTrq, frontTrq;
-struct candata_motor_current_t currentData;
-uint8_t currentDataBuffer[8];
-
 void vcu_battery_frame_process(struct candata_vcu_battery_t* VBATT, struct can_frame frame, float* batteryVoltage);
 void ai_drive_request_frame_process(struct candata_ai_drive_request_t* driveRequest, struct can_frame frame, float* frontTrq, float* rearTrq, float* steeringReq);
 void vcu_wheel_speed_frame_process(struct candata_vcu_wheel_speeds_t* wheelSpeed, struct can_frame frame, uint16_t* rr_wheelSpeed, uint16_t* rl_wheelSpeed, uint16_t* fr_wheelSpeed, uint16_t* fl_wheelSpeed);
@@ -20,6 +9,7 @@ int torque_limit_rear(uint16_t rr_wheelSpeed, uint16_t rl_wheelSpeed, float rear
 int torque_limit_front(uint16_t fr_wheelSpeed, uint16_t fl_wheelSpeed, float frontTrq, float batteryVoltage);
 float calculate_front_current(int tr, float v, uint16_t r);
 float calculate_rear_current(int tr, float v, uint16_t r);
+void generate_can_frame(struct can_frame* frame, uint8_t *currentDataBuffer, uint16_t can_id, int dlc);
 
 float calculate_front_current(int tf, float v, uint16_t rf)
 {
@@ -166,3 +156,15 @@ void vcu_wheel_speed_frame_process(struct candata_vcu_wheel_speeds_t* wheelSpeed
 	}
 }
 
+void generate_can_frame(struct can_frame* frame, uint8_t *currentDataBuffer, uint16_t can_id, int dlc)
+{
+	frame->can_id = can_id;
+	frame->can_dlc = dlc;
+	if(dlc > 0)
+	{
+		for (int i = 0; i < dlc; i++)
+		{
+			frame->data[i] = currentDataBuffer[i];
+		}
+	}
+}
