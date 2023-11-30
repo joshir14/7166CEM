@@ -4,11 +4,13 @@ int main()
 {
 	const int socket_id = can_connect("vcan0",0);
 	float cf1, cr1;
-	uint8_t count1, count2, count3;
+	int count1, count2, count3;
 	struct can_frame frame, TxFrame;
 	float batteryVoltage;
 	int dlc;
+	int status;
 	uint16_t rr_wheelSpeed, rl_wheelSpeed, fr_wheelSpeed, fl_wheelSpeed;
+	uint16_t fs, rs;
 	float frontCurrent, rearCurrent;
 	float steeringReq, rearTrq, frontTrq;
 
@@ -16,7 +18,8 @@ int main()
 	int tf1, tr1;
 	while(1)
 	{
-		if(can_read(socket_id,&frame) == 1)
+		status = can_read(socket_id,&frame);
+		if(status == 1)
 		{
 			if((frame.can_id == 0x526) && (frame.can_dlc > 0))
 			{
@@ -37,26 +40,24 @@ int main()
 				count3 = count3 + 1;
 				vcu_wheel_speed_frame_process(frame, &rr_wheelSpeed, &rl_wheelSpeed, &fr_wheelSpeed, &fl_wheelSpeed);
 				printf("Front right wheel speed is %d\n", fr_wheelSpeed);
+				printf("Front left wheel speed is %d\n", fl_wheelSpeed);
 				printf("Rear right wheel speed is %d\n", rr_wheelSpeed);
 				printf("Rear left wheel speed is %d\n", rl_wheelSpeed);
-				printf("Front left wheel speed is %d\n", fl_wheelSpeed);
 			}
-
+			
 			if((count1 > 0) && (count2 > 0) && (count3 > 0))
 			{
-				count1 = 0;
-				count2 = 0;
-				count3 = 0;
+				fs = (fr_wheelSpeed > fl_wheelSpeed) ? (fr_wheelSpeed) : (fl_wheelSpeed);
+				rs = (rr_wheelSpeed > rl_wheelSpeed) ? (rr_wheelSpeed) : (rl_wheelSpeed);
 				tf1 = torque_limit_front(fr_wheelSpeed, fl_wheelSpeed, frontTrq, batteryVoltage);
 				tr1 = torque_limit_rear(rr_wheelSpeed, rl_wheelSpeed, rearTrq, batteryVoltage);
 				printf("Front torque limit %d\n", tf1);
 				printf("Rear torque limit %d\n", tr1);
-				cf1 = calculate_front_current(tf1, batteryVoltage, 300);
-				cr1 = calculate_rear_current(tr1, batteryVoltage, 400);
-				printf("Rear current %f\n", cr1);
+				cf1 = calculate_front_current(tf1, batteryVoltage, fs);
+				cr1 = calculate_rear_current(tr1, batteryVoltage, rs);
 				printf("Front current %f\n", cf1);
+				printf("Rear current %f\n", cr1);
 				dlc = process_motor_current_request(cf1, cr1, currentDataBuffer);
-				printf("DLC is %d\n", dlc);
 				
 				generate_can_frame(&TxFrame, currentDataBuffer, 0x320, dlc);
 				if(!can_write(socket_id, &TxFrame))
